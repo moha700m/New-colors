@@ -6,14 +6,25 @@
     <UseSystemDrawing>true</UseSystemDrawing>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyName>MohammedLab.ColorVision</AssemblyName>
+
+    <AssemblyName>MohammedLab-ColorVision</AssemblyName>
     <RootNamespace>MohammedLab.ColorVision</RootNamespace>
-    <Version>2.0.0</Version>
+    <Version>2.0.1</Version>
     <Authors>Mohammed Lab</Authors>
     <Company>Mohammed Lab</Company>
     <Product>Mohammed Lab Color Vision</Product>
     <Description>Real-time color detection, controller diagnostics and profiling toolkit by Mohammed Lab.</Description>
+
+    <!-- Customer distribution: one self-contained Windows executable. -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="OpenCvSharp4" Version="4.11.0.20250507" />
     <PackageReference Include="OpenCvSharp4.Extensions" Version="4.11.0.20250507" />
