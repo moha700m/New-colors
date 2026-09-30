@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseSystemDrawing>true</UseSystemDrawing>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>MohammedLab.ColorVision</AssemblyName>
+    <RootNamespace>MohammedLab.ColorVision</RootNamespace>
+    <ApplicationIcon>Assets\MohammedLab.ico</ApplicationIcon>
+    <Version>2.0.0</Version>
+    <Authors>Mohammed Lab</Authors>
+    <Company>Mohammed Lab</Company>
+    <Product>Mohammed Lab Color Vision</Product>
+    <Description>Real-time color detection, controller diagnostics and profiling toolkit by Mohammed Lab.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="OpenCvSharp4" Version="4.11.0.20250507" />
+    <PackageReference Include="OpenCvSharp4.Extensions" Version="4.11.0.20250507" />
+    <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.11.0.20250507" />
+  </ItemGroup>
+</Project>
