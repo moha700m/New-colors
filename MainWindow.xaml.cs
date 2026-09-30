@@ -1,6 +1,7 @@
 using System.Security.Principal;
 using System.Windows;
 using System.Windows.Controls;
+using MessageBox = System.Windows.MessageBox;
 using MohammedLab.ColorVision.Core;
 
 namespace MohammedLab.ColorVision;
