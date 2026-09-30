@@ -9,7 +9,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>MohammedLab.ColorVision</AssemblyName>
     <RootNamespace>MohammedLab.ColorVision</RootNamespace>
-    <ApplicationIcon>Assets\MohammedLab.ico</ApplicationIcon>
     <Version>1.5.11</Version>
     <Authors>Mohammed Lab</Authors>
     <Company>Mohammed Lab</Company>
