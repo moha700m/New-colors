@@ -1,109 +1,130 @@
-using System.Globalization;
+using System.Security.Principal;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
-using Microsoft.Win32;
 using MohammedLab.ColorVision.Core;
 
 namespace MohammedLab.ColorVision;
 
 public partial class MainWindow : Window
 {
-    private readonly ProfileStore _profiles = new();
-    private AppConfig _config;
-    private readonly VisionEngine _engine;
+    private readonly SettingsStore _store = new();
+    private readonly AppConfig _settings;
+    private readonly AimEngine _engine;
     private bool _loading = true;
 
     public MainWindow()
     {
         InitializeComponent();
-        _config = _profiles.Load("Default");
-        _engine = new VisionEngine(_config);
+        _settings = _store.Load();
+        _engine = new AimEngine(_settings);
         _engine.TelemetryUpdated += Engine_TelemetryUpdated;
         _engine.Faulted += Engine_Faulted;
-        LoadConfigToUi();
-        TxtProfilePath.Text = _profiles.Root;
+        PopulateControls();
+        LoadSettingsToUi();
+        ShowPage(CapturePage);
+        RunCheck();
         Closed += async (_, _) => { await _engine.StopAsync(); _engine.Dispose(); };
     }
 
-    private void LoadConfigToUi()
+    private void PopulateControls()
+    {
+        CmbMonitor.ItemsSource = ScreenCapture.MonitorNames;
+        CmbFps.ItemsSource = AppConfig.CaptureFpsOptions;
+        CmbWidth.ItemsSource = AppConfig.ZoneWidths;
+        CmbHeight.ItemsSource = AppConfig.ZoneHeights;
+        var buttons = Enum.GetValues<PadButton>().Where(x => x != PadButton.None).ToArray();
+        CmbAimButton.ItemsSource = buttons;
+        CmbFireButton.ItemsSource = buttons;
+    }
+
+    private void LoadSettingsToUi()
     {
         _loading = true;
         try
         {
-            TxtProfileName.Text = _config.ProfileName;
-            SldCaptureWidth.Value = _config.CaptureWidth;
-            SldCaptureHeight.Value = _config.CaptureHeight;
-            SldCaptureFps.Value = _config.CaptureFps;
-            SldHue.Value = _config.Hue;
-            SldHueTolerance.Value = _config.HueTolerance;
-            SldSat.Value = _config.SaturationMin;
-            SldValue.Value = _config.ValueMin;
-            SldMinArea.Value = _config.MinBlobArea;
-            SldTargetOffset.Value = _config.TargetYOffsetPx;
-            ChkSticky.IsChecked = _config.StickyTarget;
-            CmbControllerIndex.SelectedIndex = Math.Clamp(_config.ControllerIndex, 0, 3);
-            RefreshLabels();
+            CmbMonitor.SelectedIndex = Math.Clamp(_settings.ScreenIndex, 0, Math.Max(0, CmbMonitor.Items.Count - 1));
+            CmbFps.SelectedItem = _settings.CaptureFps;
+            CmbWidth.SelectedItem = _settings.ZoneWidth;
+            CmbHeight.SelectedItem = _settings.ZoneHeight;
+            ChkNoPreview.IsChecked = _settings.NoPreview;
+            ChkHud.IsChecked = _settings.ShowHud;
+            CmbGame.SelectedIndex = (int)_settings.Game;
+            CmbDevice.SelectedIndex = (int)_settings.Device;
+            CmbAimButton.SelectedItem = _settings.AimButton;
+            CmbFireButton.SelectedItem = _settings.FireButton;
+            foreach (var item in CmbAimKey.Items.OfType<ComboBoxItem>())
+                if (int.TryParse(item.Tag?.ToString(), out var key) && key == _settings.AimKey) { CmbAimKey.SelectedItem = item; break; }
+            if (CmbAimKey.SelectedIndex < 0) CmbAimKey.SelectedIndex = 0;
+            ChkHold.IsChecked = _settings.HoldToAim;
+            ChkAlways.IsChecked = _settings.AlwaysTrack;
+            SldStrength.Value = _settings.Strength;
+            SldOffset.Value = _settings.AimPointOffsetPx;
+            ChkRecoil.IsChecked = _settings.AntiRecoilOn;
+            SldRecoil.Value = _settings.AntiRecoil;
+            ChkAutoFire.IsChecked = _settings.AutoFire;
+            GuideTabs.SelectedIndex = Math.Clamp((int)_settings.GuideGame, 0, 3);
+            RefreshUiText();
         }
         finally { _loading = false; }
     }
 
-    private void ReadUiToConfig()
+    private void ReadUiToSettings()
     {
         if (_loading) return;
-        _config.ProfileName = string.IsNullOrWhiteSpace(TxtProfileName.Text) ? "Default" : TxtProfileName.Text.Trim();
-        _config.CaptureWidth = (int)SldCaptureWidth.Value;
-        _config.CaptureHeight = (int)SldCaptureHeight.Value;
-        _config.CaptureFps = (int)SldCaptureFps.Value;
-        _config.Hue = (int)SldHue.Value;
-        _config.HueTolerance = (int)SldHueTolerance.Value;
-        _config.SaturationMin = (int)SldSat.Value;
-        _config.ValueMin = (int)SldValue.Value;
-        _config.MinBlobArea = (int)SldMinArea.Value;
-        _config.TargetYOffsetPx = (int)SldTargetOffset.Value;
-        _config.StickyTarget = ChkSticky.IsChecked == true;
-        _config.ControllerIndex = Math.Max(0, CmbControllerIndex.SelectedIndex);
-        _engine.ApplyConfig(_config);
-        RefreshLabels();
+        _settings.ScreenIndex = Math.Max(0, CmbMonitor.SelectedIndex);
+        _settings.CaptureFps = CmbFps.SelectedItem is int fps ? fps : 90;
+        _settings.ZoneWidth = CmbWidth.SelectedItem is int width ? width : 400;
+        _settings.ZoneHeight = CmbHeight.SelectedItem is int height ? height : 560;
+        _settings.NoPreview = ChkNoPreview.IsChecked == true;
+        _settings.ShowHud = ChkHud.IsChecked == true;
+        _settings.Game = (GameMode)Math.Clamp(CmbGame.SelectedIndex, 0, 4);
+        _settings.Device = (AimDevice)Math.Clamp(CmbDevice.SelectedIndex, 0, 1);
+        if (CmbAimButton.SelectedItem is PadButton aim) _settings.AimButton = aim;
+        if (CmbFireButton.SelectedItem is PadButton fire) _settings.FireButton = fire;
+        if (CmbAimKey.SelectedItem is ComboBoxItem keyItem && int.TryParse(keyItem.Tag?.ToString(), out var key)) _settings.AimKey = key;
+        _settings.HoldToAim = ChkHold.IsChecked == true;
+        _settings.AlwaysTrack = ChkAlways.IsChecked == true;
+        _settings.Strength = (float)SldStrength.Value;
+        _settings.AimPointOffsetPx = (int)Math.Round(SldOffset.Value);
+        _settings.AntiRecoilOn = ChkRecoil.IsChecked == true;
+        _settings.AntiRecoil = (float)SldRecoil.Value;
+        _settings.AutoFire = ChkAutoFire.IsChecked == true;
+        SettingsStore.Clamp(_settings);
+        _store.Save(_settings);
+        _engine.ApplyConfig(_settings);
+        RefreshUiText();
     }
 
-    private void RefreshLabels()
+    private void RefreshUiText()
     {
-        if (!IsInitialized) return;
-        LblCaptureWidth.Text = $"{(int)SldCaptureWidth.Value}px";
-        LblCaptureHeight.Text = $"{(int)SldCaptureHeight.Value}px";
-        LblCaptureFps.Text = $"{(int)SldCaptureFps.Value} FPS target";
-        LblHue.Text = ((int)SldHue.Value).ToString(CultureInfo.InvariantCulture);
-        LblHueTolerance.Text = $"±{(int)SldHueTolerance.Value}";
-        LblSat.Text = ((int)SldSat.Value).ToString(CultureInfo.InvariantCulture);
-        LblValue.Text = ((int)SldValue.Value).ToString(CultureInfo.InvariantCulture);
-        LblMinArea.Text = ((int)SldMinArea.Value).ToString(CultureInfo.InvariantCulture);
-        LblTargetOffset.Text = $"{(int)SldTargetOffset.Value}px";
+        TxtStrength.Text = _settings.Strength.ToString("0.0");
+        TxtOffset.Text = $"{_settings.AimPointOffsetPx}px";
+        TxtRecoil.Text = _settings.AntiRecoil.ToString("0.0");
+        RecoilRow.IsEnabled = _settings.AntiRecoilOn;
+        StatusDevice.Text = $"Device: {_settings.Device}";
+        TxtDeviceNote.Text = _settings.Device == AimDevice.Mouse
+            ? "Mouse mode uses the selected mouse aim key. Default: Right Mouse."
+            : "Controller mode uses the selected Aim / Fire buttons and a virtual Xbox controller.";
     }
 
-    private void ConfigControl_Changed(object sender, RoutedEventArgs e) { if (!_loading) ReadUiToConfig(); }
-    private void ConfigControl_Click(object sender, RoutedEventArgs e) { if (!_loading) ReadUiToConfig(); }
+    private void SettingChanged(object sender, RoutedEventArgs e) => ReadUiToSettings();
 
-    private async void StartStopButton_Click(object sender, RoutedEventArgs e)
+    private async void BtnToggle_Click(object sender, RoutedEventArgs e)
     {
-        ReadUiToConfig();
+        ReadUiToSettings();
         if (!_engine.Running)
         {
             if (_engine.Start())
             {
+                BtnToggle.Content = "Stop";
                 StatusText.Text = "Running";
-                StatusDot.Fill = (Brush)FindResource("SuccessBrush");
-                StartStopButton.Content = "Stop Vision";
-                FooterStatus.Text = "Vision engine started";
             }
         }
         else
         {
             await _engine.StopAsync();
-            StatusText.Text = "Stopped";
-            StatusDot.Fill = (Brush)FindResource("DangerBrush");
-            StartStopButton.Content = "Start Vision";
-            FooterStatus.Text = "Vision engine stopped";
+            BtnToggle.Content = "Start";
+            StatusText.Text = "Ready";
         }
     }
 
@@ -113,51 +134,61 @@ public partial class MainWindow : Window
         {
             var d = _engine.LastDetection;
             var g = _engine.LastControllerState.Gamepad;
-            TxtFps.Text = $"Capture FPS: {_engine.CaptureFps:0.0}";
-            TxtDetector.Text = $"Detector: {d.ProcessingMs:0.00} ms • candidates {d.CandidateCount}";
-            TxtTarget.Text = d.Found ? $"Target: X {d.Target.X}, Y {d.Target.Y} • confidence {d.Confidence:P0}" : "Target: none";
-            TxtInspector.Text = d.Found ? $"Bounds {d.Bounds.X},{d.Bounds.Y}  {d.Bounds.Width}×{d.Bounds.Height} | Center {d.Target.X},{d.Target.Y} | Confidence {d.Confidence:P1}" : "No matching region detected.";
-            var connected = XInput.TryGetState(_config.ControllerIndex, out _);
-            TxtController.Text = connected ? $"Controller #{_config.ControllerIndex}: connected" : $"Controller #{_config.ControllerIndex}: not detected";
-            TxtControllerLive.Text = $"LX {g.sThumbLX,6}   LY {g.sThumbLY,6}   RX {g.sThumbRX,6}   RY {g.sThumbRY,6}\nLT {g.bLeftTrigger,3}   RT {g.bRightTrigger,3}   Buttons 0x{(ushort)g.wButtons:X4}";
-            TxtDiagnostics.Text = BuildDiagnostics();
+            TxtFps.Text = $"Capture: {_engine.CaptureFps:0.0} FPS";
+            TxtDet.Text = $"Detection: {d.ProcessingMs:0.00} ms • hits {d.CandidateCount}";
+            TxtFrames.Text = d.Found ? $"Target: {d.Target.X}, {d.Target.Y}" : "Target: none";
+            TxtPad.Text = $"LX {g.sThumbLX,6}  LY {g.sThumbLY,6}  RX {g.sThumbRX,6}  RY {g.sThumbRY,6}\nLT {g.bLeftTrigger,3}  RT {g.bRightTrigger,3}  Buttons 0x{(ushort)g.wButtons:X4}";
+            StatusText.Text = "Running";
         });
     }
 
-    private void Engine_Faulted(string error)
+    private void Engine_Faulted(string text) => Dispatcher.BeginInvoke(() =>
     {
-        Dispatcher.BeginInvoke(() =>
+        StatusText.Text = "Error";
+        MessageBox.Show(this, text, "Mohammed Lab PC", MessageBoxButton.OK, MessageBoxImage.Error);
+    });
+
+    private void BtnReplug_Click(object sender, RoutedEventArgs e)
+    {
+        try { _engine.ReplugController(); StatusText.Text = "Controller replugged"; }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Controller", MessageBoxButton.OK, MessageBoxImage.Warning); }
+    }
+
+    private void GuideTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || !IsLoaded) return;
+        _settings.GuideGame = (GameMode)Math.Clamp(GuideTabs.SelectedIndex, 0, 3);
+        _settings.GuideStep = 0;
+        _store.Save(_settings);
+    }
+
+    private void BtnCheck_Click(object sender, RoutedEventArgs e) => RunCheck();
+
+    private void RunCheck()
+    {
+        TxtCheckOs.Text = $"Windows: {Environment.OSVersion.Version}";
+        TxtCheckRuntime.Text = $".NET: {Environment.Version}";
+        var admin = false;
+        try { using var identity = WindowsIdentity.GetCurrent(); admin = new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator); } catch { }
+        TxtCheckAdmin.Text = $"Administrator: {(admin ? "Yes" : "No")}";
+        TxtCheckPad.Text = $"Physical controller: {(XInput.TryGetState(0, out _) ? "Connected" : "Not detected")}";
+        if (_engine.Running) TxtCheckVigem.Text = $"Virtual controller: {_engine.VirtualControllerStatus}";
+        else
         {
-            FooterStatus.Text = "Engine error";
-            MessageBox.Show(this, error, "Mohammed Lab Color Vision", MessageBoxButton.OK, MessageBoxImage.Error);
-        });
+            using var test = new VirtualController();
+            TxtCheckVigem.Text = $"ViGEm: {(test.Connect() ? "Ready" : test.Status)}";
+        }
     }
 
-    private string BuildDiagnostics()
+    private void NavCapture_Click(object sender, RoutedEventArgs e) => ShowPage(CapturePage);
+    private void NavGame_Click(object sender, RoutedEventArgs e) => ShowPage(GamePage);
+    private void NavGuide_Click(object sender, RoutedEventArgs e) => ShowPage(GuidePage);
+    private void NavCheck_Click(object sender, RoutedEventArgs e) { RunCheck(); ShowPage(CheckPage); }
+
+    private void ShowPage(UIElement page)
     {
-        var d = _engine.LastDetection;
-        return $"Product: Mohammed Lab Color Vision 2.0.0\n" +
-               $"OS: {Environment.OSVersion}\nRuntime: {Environment.Version}\n" +
-               $"Capture: {_config.CaptureWidth}x{_config.CaptureHeight} @ {_config.CaptureFps} target FPS\n" +
-               $"Actual FPS: {_engine.CaptureFps:0.0}\nDetector: {d.ProcessingMs:0.00} ms\n" +
-               $"Color: H={_config.Hue} ±{_config.HueTolerance}, S>={_config.SaturationMin}, V>={_config.ValueMin}\n" +
-               $"Controller index: {_config.ControllerIndex}\nProfile: {_config.ProfileName}";
+        CapturePage.Visibility = Visibility.Collapsed; GamePage.Visibility = Visibility.Collapsed;
+        GuidePage.Visibility = Visibility.Collapsed; CheckPage.Visibility = Visibility.Collapsed;
+        page.Visibility = Visibility.Visible;
     }
-
-    private void PresetPink_Click(object sender, RoutedEventArgs e) => ApplyColorPreset("Pink", 155, 13, 130, 130);
-    private void PresetYellow_Click(object sender, RoutedEventArgs e) => ApplyColorPreset("Yellow", 30, 11, 150, 150);
-    private void PresetRed_Click(object sender, RoutedEventArgs e) => ApplyColorPreset("Red", 0, 9, 150, 130);
-    private void PresetPurple_Click(object sender, RoutedEventArgs e) => ApplyColorPreset("Purple", 140, 12, 120, 120);
-    private void ApplyColorPreset(string name, int h, int tol, int s, int v)
-    {
-        _config.Hue = h; _config.HueTolerance = tol; _config.SaturationMin = s; _config.ValueMin = v;
-        LoadConfigToUi(); _engine.ApplyConfig(_config); FooterStatus.Text = $"Preset loaded: {name}";
-    }
-
-    private void SaveProfile_Click(object sender, RoutedEventArgs e) { ReadUiToConfig(); _profiles.Save(_config); FooterStatus.Text = $"Saved profile: {_config.ProfileName}"; }
-    private void ReloadProfile_Click(object sender, RoutedEventArgs e) { var name = string.IsNullOrWhiteSpace(TxtProfileName.Text) ? "Default" : TxtProfileName.Text.Trim(); _config = _profiles.Load(name); LoadConfigToUi(); _engine.ApplyConfig(_config); FooterStatus.Text = $"Reloaded profile: {name}"; }
-    private void NewProfile_Click(object sender, RoutedEventArgs e) { _config = new AppConfig { ProfileName = "New Profile" }; LoadConfigToUi(); _engine.ApplyConfig(_config); FooterStatus.Text = "New profile created"; }
-    private void ExportProfile_Click(object sender, RoutedEventArgs e) { ReadUiToConfig(); var dlg = new SaveFileDialog { Filter = "Mohammed Lab profile (*.json)|*.json", FileName = _config.ProfileName + ".json" }; if (dlg.ShowDialog(this) == true) { _profiles.Export(_config, dlg.FileName); FooterStatus.Text = "Profile exported"; } }
-    private void ImportProfile_Click(object sender, RoutedEventArgs e) { var dlg = new OpenFileDialog { Filter = "Mohammed Lab profile (*.json)|*.json" }; if (dlg.ShowDialog(this) == true) { _config = _profiles.Import(dlg.FileName); LoadConfigToUi(); _engine.ApplyConfig(_config); FooterStatus.Text = "Profile imported"; } }
-    private void CopyDiagnostics_Click(object sender, RoutedEventArgs e) { Clipboard.SetText(BuildDiagnostics()); FooterStatus.Text = "Diagnostics copied"; }
 }

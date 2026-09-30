@@ -3,29 +3,22 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
     <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
     <UseSystemDrawing>true</UseSystemDrawing>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-
-    <AssemblyName>MohammedLab-ColorVision</AssemblyName>
+    <AssemblyName>MohammedLab.ColorVision</AssemblyName>
     <RootNamespace>MohammedLab.ColorVision</RootNamespace>
-    <Version>2.0.1</Version>
+    <ApplicationIcon>Assets\MohammedLab.ico</ApplicationIcon>
+    <Version>1.5.11</Version>
     <Authors>Mohammed Lab</Authors>
     <Company>Mohammed Lab</Company>
-    <Product>Mohammed Lab Color Vision</Product>
-    <Description>Real-time color detection, controller diagnostics and profiling toolkit by Mohammed Lab.</Description>
-
-    <!-- Customer distribution: one self-contained Windows executable. -->
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <SelfContained>true</SelfContained>
-    <PublishSingleFile>true</PublishSingleFile>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
-    <DebugType>none</DebugType>
-    <DebugSymbols>false</DebugSymbols>
+    <Product>Mohammed Lab PC</Product>
+    <Description>Color detection PC application by Mohammed Lab.</Description>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Nefarius.ViGEm.Client" Version="1.21.256" />
     <PackageReference Include="OpenCvSharp4" Version="4.11.0.20250507" />
     <PackageReference Include="OpenCvSharp4.Extensions" Version="4.11.0.20250507" />
     <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.11.0.20250507" />
