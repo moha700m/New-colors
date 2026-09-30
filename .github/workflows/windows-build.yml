@@ -21,7 +21,7 @@ jobs:
         run: dotnet build -c Release --no-restore
 
       - name: Publish single EXE
-        run: dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -p:DebugSymbols=false -o dist/MohammedLab-ColorVision
+        run: dotnet publish -c Release -r win-x64 --self-contained true -p:AssemblyName=MohammedLab-ColorVision -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -p:DebugSymbols=false -o dist/MohammedLab-ColorVision
 
       - name: Verify single EXE
         shell: pwsh
