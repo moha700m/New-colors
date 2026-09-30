@@ -22,3 +22,5 @@ Commercial-ready Windows desktop toolkit by **Mohammed Lab** for real-time color
 `./publish.ps1`
 
 Output: `dist/MohammedLab-ColorVision`
+
+Builds are validated on the Windows GitHub Actions runner before release packaging.
