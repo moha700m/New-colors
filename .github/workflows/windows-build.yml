@@ -3,21 +3,35 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
+
 jobs:
   build:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+
       - name: Restore
         run: dotnet restore
+
       - name: Build
         run: dotnet build -c Release --no-restore
-      - name: Publish Windows x64
-        run: dotnet publish -c Release -r win-x64 --self-contained true -p:PublishReadyToRun=true -o dist/MohammedLab-ColorVision
+
+      - name: Publish single EXE
+        run: dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -p:DebugSymbols=false -o dist/MohammedLab-ColorVision
+
+      - name: Verify single EXE
+        shell: pwsh
+        run: |
+          $exe = "dist/MohammedLab-ColorVision/MohammedLab-ColorVision.exe"
+          if (!(Test-Path $exe)) { throw "Single EXE was not generated." }
+          Get-ChildItem "dist/MohammedLab-ColorVision" | Format-Table Name, Length
+
       - uses: actions/upload-artifact@v4
         with:
-          name: MohammedLab-ColorVision-win-x64
-          path: dist/MohammedLab-ColorVision
+          name: MohammedLab-ColorVision-OneClick-win-x64
+          path: dist/MohammedLab-ColorVision/MohammedLab-ColorVision.exe
+          if-no-files-found: error
